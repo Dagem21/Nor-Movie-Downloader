@@ -45,7 +45,7 @@ export const login = async (email, password) => {
         }
     }
     catch (e) {
-        return ({ success: false, error: e })
+        return ({ success: false, error: e.message })
     }
 }
 export const changePassword = async (email, password, newPassword) => { }

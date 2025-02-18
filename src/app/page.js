@@ -23,6 +23,7 @@ export default function Home() {
     const router = useRouter()
     const [movies, setMovies] = useState([])
     const [selectedMovie, setSelectedMovie] = useState()
+    const [selectedSeason, setSelectedSeason] = useState()
 
     useEffect(() => {
         const call = async () => {
@@ -49,13 +50,31 @@ export default function Home() {
         }
     }, [data, isLoading, seasonData, seasonLoading])
 
-    console.log(selectedMovie?.seasons);
+    useEffect(() => {
+        if (episodeData && !episodesLoading) {
+            function compare(a, b) {
+                if (a.number < b.number) {
+                    return 1;
+                }
+                if (a.number > b.number) {
+                    return -1;
+                }
+                return 0;
+            }
+            let sortedEpisodes = [...episodeData]
+            sortedEpisodes.sort(compare);
+            setSelectedSeason(sortedEpisodes)
+        }
+    }, [episodeData, episodesLoading])
 
     const handleSelected = (movieID) => {
         fetchData({ url: `https://api.tvmaze.com/shows/${movieID}` })
         seasonFetch({ url: `https://api.tvmaze.com/shows/${movieID}/seasons` })
     }
-    console.log();
+
+    const seasonHandler = (seasonID) => {
+        episodeFetch({ url: `https://api.tvmaze.com/seasons/${seasonID}/episodes` })
+    }
 
     return (
         <div className="h-screen">
@@ -91,8 +110,8 @@ export default function Home() {
                     {
                         selectedMovie ?
                             <div className="col-start-2 col-span-3 px-10 py-3 flex">
-                                <div className="flex justify-center mr-4">
-                                    <img className="max-w-64" src={selectedMovie?.data?.image?.original} />
+                                <div className="flex justify-center mr-4 w-96 h-96">
+                                    <img className="w-96 object-cover" src={selectedMovie?.data?.image?.original} />
                                 </div>
                                 <div>
                                     <div className="flex justify-between">
@@ -123,14 +142,53 @@ export default function Home() {
                                     </div>
                                     {
                                         selectedMovie?.seasons &&
-                                        <div className="mt-5 overflow-x-scroll bg-red-500">
-                                            <div className="flex">
-                                                {selectedMovie.seasons.map((season) => {
-                                                    return <button className="text-nowrap mr-3 bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded">
-                                                        Season {season?.number}
-                                                    </button>
-                                                })}
+                                        <div className="mt-5">
+                                            <div className="w-fit">
+                                                <select
+                                                    id="season"
+                                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                    onChange={(e) => { seasonHandler(e.target.value) }}
+                                                >
+                                                    <option disabled>Season</option>
+                                                    {selectedMovie.seasons.map((season) => {
+                                                        return <option key={season.id} value={season?.id}>Season {season?.number}</option>
+                                                    })}
+                                                </select>
                                             </div>
+                                        </div>
+                                    }
+                                    {
+                                        selectedSeason &&
+                                        <div className="mt-5">
+                                            {selectedSeason.map((episode) => {
+                                                return <section key={episode.id} className="mb-3">
+                                                    <label>
+                                                        <input className="peer/showLabel absolute scale-0" type="checkbox" />
+                                                        <span className="block max-h-14 overflow-hidden rounded-lg bg-gray-700 px-4 py-0 text-blue-300 shadow-lg transition-all duration-300 peer-checked/showLabel:max-h-52">
+                                                            <div className="flex h-14 cursor-pointer justify-between items-center font-bold">
+                                                                <h1>Episode: {episode?.number} - {episode?.name}</h1>
+                                                                <button
+                                                                    type="button"
+                                                                    className="rounded-lg px-4 py-4 text-center inline-flex items-center"
+                                                                    onClick={() => {
+                                                                        router.push(`/download?query=${selectedMovie?.data?.name} s${episode?.season.toString().padStart(2, '0')}e${episode?.number.toString().padStart(2, '0')}`)
+                                                                    }}
+                                                                >
+                                                                    <svg width="30px" height="30px" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000" strokeWidth="0.00024000000000000003">
+                                                                        <path fillRule="evenodd" clipRule="evenodd" d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12ZM12 6.25C12.4142 6.25 12.75 6.58579 12.75 7V12.1893L14.4697 10.4697C14.7626 10.1768 15.2374 10.1768 15.5303 10.4697C15.8232 10.7626 15.8232 11.2374 15.5303 11.5303L12.5303 14.5303C12.3897 14.671 12.1989 14.75 12 14.75C11.8011 14.75 11.6103 14.671 11.4697 14.5303L8.46967 11.5303C8.17678 11.2374 8.17678 10.7626 8.46967 10.4697C8.76256 10.1768 9.23744 10.1768 9.53033 10.4697L11.25 12.1893V7C11.25 6.58579 11.5858 6.25 12 6.25ZM8 16.25C7.58579 16.25 7.25 16.5858 7.25 17C7.25 17.4142 7.58579 17.75 8 17.75H16C16.4142 17.75 16.75 17.4142 16.75 17C16.75 16.5858 16.4142 16.25 16 16.25H8Z" fill="#3b5998" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                            <div className="ml-10">
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Run Time: </span>{episode?.runtime} Minutes</p>
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Rating: </span>{episode?.rating?.average}</p>
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Air Date: </span>{episode?.airdate ? new Date(episode?.airdate).toDateString() : 'N/A'}</p>
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Summary: </span>{episode?.summary?.replace(/(<([^>]+)>)/gi, "")}</p>
+                                                            </div>
+                                                        </span>
+                                                    </label>
+                                                </section>
+                                            })}
                                         </div>
                                     }
                                 </div>

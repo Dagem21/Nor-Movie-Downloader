@@ -30,7 +30,6 @@ export default function Search() {
 
     const handleAddFavorite = async () => {
         const addResponse = await addFavorite(user.userID, selectedMovie?.show?.id, selectedMovie?.show?.name, null, selectedMovie?.show?.status)
-        console.log(addResponse);
     }
     return (
         <div className="h-screen">
