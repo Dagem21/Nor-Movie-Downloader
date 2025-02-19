@@ -1,12 +1,18 @@
 "use client"
 
 import Header from "@/components/header/header";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import useFetch from "@/hooks/UseFetch";
 import { useSearchParams } from "next/navigation";
 import { parse, parseTorrent } from "@/lib/parser";
 
 export default function Search() {
+    return <Suspense>
+        <SearchPage />
+    </Suspense>
+}
+
+function SearchPage() {
     const searchParams = useSearchParams()
 
     const { data, isLoading, fetchData } = useFetch({
