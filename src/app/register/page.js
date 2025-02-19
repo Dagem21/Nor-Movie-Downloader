@@ -26,25 +26,26 @@ export default function Register() {
 
     const handleChange = (e) => {
         setRegisterData(prev => ({ ...prev, [e.target.name]: e.target.value }))
-
-        if (e.target.name === "confirmPassword" && registerData.password !== e.target.value) {
-            setRegisterDataError(prev => ({ ...prev, "confirmPassword": "Confirm your password!" }))
-        }
-        else {
-            setRegisterDataError(prev => ({ ...prev, "confirmPassword": null }))
-        }
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setRegisterDataError(initError)
 
-        const createResponse = await createUser(registerData.username, registerData.email, registerData.password)
-        if (createResponse.created) {
-            router.replace('/login')
+        if (registerData.password.length < 6) {
+            setRegisterDataError(prev => ({ ...prev, "password": "Password must be atlease 6 characters!" }))
+        }
+        else if (registerData.password !== registerData.confirmPassword) {
+            setRegisterDataError(prev => ({ ...prev, "confirmPassword": "Confirm your password!" }))
         }
         else {
-            setRegisterDataError(prev => ({ ...prev, response: createResponse.error }))
+            const createResponse = await createUser(registerData.username, registerData.email, registerData.password)
+            if (createResponse.created) {
+                router.replace('/login')
+            }
+            else {
+                setRegisterDataError(prev => ({ ...prev, response: createResponse.error }))
+            }
         }
     }
     return (
@@ -89,6 +90,10 @@ export default function Register() {
                             value={registerData.password}
                             onChange={handleChange}
                         />
+                        {
+                            registerDataError.password &&
+                            <p className="mt-1 text-sm font-small dark:text-red-500">{registerDataError.password}</p>
+                        }
                     </div>
                     <div className="mb-5">
                         <label htmlFor="confirmPassword" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm Password</label>

@@ -43,7 +43,7 @@ function SearchPage() {
         if (data && !isLoading) {
             const torrents = parse(data)
             setTorrents(torrents.tors)
-            setTotalPages(torrents.lastPage ?? totalPages)
+            setTotalPages(prev=> torrents.lastPage ?? prev)
         }
     }, [data, isLoading])
 

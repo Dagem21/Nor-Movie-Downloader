@@ -8,7 +8,7 @@ export const parse = (html) => {
     const sizeList = Array.from(doc.querySelectorAll('.coll-4.size'))
     const timeList = Array.from(doc.querySelectorAll('.coll-date')).slice(1)
 
-    const lastPage = Array.from(doc.querySelectorAll('.pagination'))[0]?.children[0]?.children[2]?.children[0]?.href?.toString().split('/')[5]
+    const lastPage = Array.from(doc.querySelectorAll('.pagination'))[0]?.children[0]?.children[2]?.children[0]?.href?.toString().split('/')[5] ?? 1
 
     const tors = torrentList?.map((torrent, index) => {
         const url = new URL(torrent?.href)

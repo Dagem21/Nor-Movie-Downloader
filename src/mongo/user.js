@@ -1,5 +1,6 @@
 "use server"
 
+import { hashPass } from '@/lib/encryption';
 import connectMongo from '@/lib/mongoose';
 import mongoose from "mongoose";
 
@@ -9,11 +10,12 @@ const User = mongoose.model("user");
 export const createUser = async (username, email, password) => {
     try {
         const connRes = await connectMongo()
+        const encPass = hashPass(password)
         if (connRes) {
             await User.create({
                 username,
                 email,
-                password
+                password: encPass
             })
             return ({ created: true, error: null })
         }
@@ -22,7 +24,7 @@ export const createUser = async (username, email, password) => {
         }
     }
     catch (e) {
-        return ({ created: false, error: e })
+        return ({ created: false, error: e.message })
     }
 }
 export const login = async (email, password) => {
@@ -31,7 +33,8 @@ export const login = async (email, password) => {
         if (connRes) {
             const user = await User.findOne({ email })
             if (user) {
-                if (user.password === password) {
+                const encPass = hashPass(password)
+                if (user.password === encPass) {
                     if(user.status !== "Active"){
                         return ({ success: false, error: "Your account is inactive!" })
                     }
