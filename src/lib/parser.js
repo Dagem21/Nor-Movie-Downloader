@@ -24,3 +24,12 @@ export const parse = (html) => {
     })
     return {tors, lastPage: parseInt(lastPage)}
 }
+
+export const parseTorrent = (html) => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const magnet = Array.from(doc.querySelectorAll('a[href^="magnet"]'))
+
+    return magnet[0]?.href
+}

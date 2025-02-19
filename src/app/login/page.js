@@ -26,6 +26,7 @@ export default function Login() {
         const loginResponse = await login(loginData.email, loginData.password)
         if (loginResponse?.success) {
             setUser(loginResponse?.user)
+            localStorage.setItem('user', JSON.stringify(loginResponse?.user))
             router.replace('/')
         }
         else {

@@ -4,7 +4,7 @@ import Header from "@/components/header/header";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "./usercontext";
-import { getFavorite } from "@/mongo/favorite";
+import { deleteFavorite, getFavorite } from "@/mongo/favorite";
 import useFetch from "@/hooks/UseFetch";
 
 export default function Home() {
@@ -47,6 +47,9 @@ export default function Home() {
             let sortedSeasons = [...seasonData]
             sortedSeasons.sort(compare);
             setSelectedMovie({ data, seasons: sortedSeasons })
+            if (sortedSeasons.length) {
+                seasonHandler(sortedSeasons[0].id)
+            }
         }
     }, [data, isLoading, seasonData, seasonLoading])
 
@@ -76,6 +79,15 @@ export default function Home() {
         episodeFetch({ url: `https://api.tvmaze.com/seasons/${seasonID}/episodes` })
     }
 
+    const handleRemove = async (movieID) => {
+        const removeResult = await deleteFavorite(user.userID, movieID)
+        if (removeResult.deleted) {
+            const filter = movies.filter((movie) => movie?.movieID !== movieID + '')
+            setMovies(filter)
+            setSelectedMovie()
+        }
+    }
+
     return (
         <div className="h-screen">
             <Header />
@@ -86,7 +98,7 @@ export default function Home() {
                         movies.map((movie) => {
                             return <h1
                                 key={movie?.movieID}
-                                className={`py-1 text-sm font-bold ${selectedMovie?.data?.id + '' === movie?.movieID ? 'border-r border-solid border-indigo-600' : ''}`}
+                                className={`py-1 text-sm font-bold cursor-pointer ${selectedMovie?.data?.id + '' === movie?.movieID ? 'border-r border-solid border-indigo-600' : ''}`}
                                 onClick={() => { handleSelected(movie?.movieID) }}
                             >
                                 {movie.movieName}
@@ -110,8 +122,8 @@ export default function Home() {
                     {
                         selectedMovie ?
                             <div className="col-start-2 col-span-3 px-10 py-3 flex">
-                                <div className="flex justify-center mr-4 w-96 h-96">
-                                    <img className="w-96 object-cover" src={selectedMovie?.data?.image?.original} />
+                                <div className="flex justify-center mr-2 w-96 h-96">
+                                    <img className="max-w-96 object-cover" src={selectedMovie?.data?.image?.original} />
                                 </div>
                                 <div>
                                     <div className="flex justify-between">
@@ -119,7 +131,7 @@ export default function Home() {
                                         <button
                                             type="button"
                                             className="text-black bg-red-500 hover:bg-[#3b5998]/90 focus:ring-4 focus:outline-none focus:ring-[#3b5998]/50 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center dark:focus:ring-[#3b5998]/55 me-2 mb-2"
-                                            onClick={() => { }}
+                                            onClick={() => { handleRemove(selectedMovie?.data?.id) }}
                                         >
                                             <svg className="mr-2" width="20px" height="20px" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M4 7H20" stroke="#000000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -149,7 +161,6 @@ export default function Home() {
                                                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                                     onChange={(e) => { seasonHandler(e.target.value) }}
                                                 >
-                                                    <option disabled>Season</option>
                                                     {selectedMovie.seasons.map((season) => {
                                                         return <option key={season.id} value={season?.id}>Season {season?.number}</option>
                                                     })}
@@ -167,23 +178,31 @@ export default function Home() {
                                                         <span className="block max-h-14 overflow-hidden rounded-lg bg-gray-700 px-4 py-0 text-blue-300 shadow-lg transition-all duration-300 peer-checked/showLabel:max-h-52">
                                                             <div className="flex h-14 cursor-pointer justify-between items-center font-bold">
                                                                 <h1>Episode: {episode?.number} - {episode?.name}</h1>
-                                                                <button
-                                                                    type="button"
-                                                                    className="rounded-lg px-4 py-4 text-center inline-flex items-center"
-                                                                    onClick={() => {
-                                                                        router.push(`/download?query=${selectedMovie?.data?.name} s${episode?.season.toString().padStart(2, '0')}e${episode?.number.toString().padStart(2, '0')}`)
-                                                                    }}
-                                                                >
-                                                                    <svg width="30px" height="30px" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000" strokeWidth="0.00024000000000000003">
-                                                                        <path fillRule="evenodd" clipRule="evenodd" d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12ZM12 6.25C12.4142 6.25 12.75 6.58579 12.75 7V12.1893L14.4697 10.4697C14.7626 10.1768 15.2374 10.1768 15.5303 10.4697C15.8232 10.7626 15.8232 11.2374 15.5303 11.5303L12.5303 14.5303C12.3897 14.671 12.1989 14.75 12 14.75C11.8011 14.75 11.6103 14.671 11.4697 14.5303L8.46967 11.5303C8.17678 11.2374 8.17678 10.7626 8.46967 10.4697C8.76256 10.1768 9.23744 10.1768 9.53033 10.4697L11.25 12.1893V7C11.25 6.58579 11.5858 6.25 12 6.25ZM8 16.25C7.58579 16.25 7.25 16.5858 7.25 17C7.25 17.4142 7.58579 17.75 8 17.75H16C16.4142 17.75 16.75 17.4142 16.75 17C16.75 16.5858 16.4142 16.25 16 16.25H8Z" fill="#3b5998" />
-                                                                    </svg>
-                                                                </button>
+                                                                {
+                                                                    episode?.airdate ?
+                                                                        new Date(episode?.airdate) > new Date() ?
+                                                                            <></>
+                                                                            :
+                                                                            <button
+                                                                                type="button"
+                                                                                className="rounded-lg px-4 py-4 text-center inline-flex items-center"
+                                                                                onClick={() => {
+                                                                                    router.push(`/download?query=${selectedMovie?.data?.name} s${episode?.season.toString().padStart(2, '0')}e${episode?.number.toString().padStart(2, '0')}`)
+                                                                                }}
+                                                                            >
+                                                                                <svg width="30px" height="30px" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000" strokeWidth="0.00024000000000000003">
+                                                                                    <path fillRule="evenodd" clipRule="evenodd" d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12ZM12 6.25C12.4142 6.25 12.75 6.58579 12.75 7V12.1893L14.4697 10.4697C14.7626 10.1768 15.2374 10.1768 15.5303 10.4697C15.8232 10.7626 15.8232 11.2374 15.5303 11.5303L12.5303 14.5303C12.3897 14.671 12.1989 14.75 12 14.75C11.8011 14.75 11.6103 14.671 11.4697 14.5303L8.46967 11.5303C8.17678 11.2374 8.17678 10.7626 8.46967 10.4697C8.76256 10.1768 9.23744 10.1768 9.53033 10.4697L11.25 12.1893V7C11.25 6.58579 11.5858 6.25 12 6.25ZM8 16.25C7.58579 16.25 7.25 16.5858 7.25 17C7.25 17.4142 7.58579 17.75 8 17.75H16C16.4142 17.75 16.75 17.4142 16.75 17C16.75 16.5858 16.4142 16.25 16 16.25H8Z" fill="#3b5998" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        :
+                                                                        <></>
+                                                                }
                                                             </div>
                                                             <div className="ml-10">
-                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Run Time: </span>{episode?.runtime} Minutes</p>
-                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Rating: </span>{episode?.rating?.average}</p>
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Run Time: </span>{episode?.runtime ? episode?.runtime + ' Minutes' : 'N/A'}</p>
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Rating: </span>{episode?.rating?.average ?? 'N/A'}</p>
                                                                 <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Air Date: </span>{episode?.airdate ? new Date(episode?.airdate).toDateString() : 'N/A'}</p>
-                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Summary: </span>{episode?.summary?.replace(/(<([^>]+)>)/gi, "")}</p>
+                                                                <p className="mb-2"> <span className="text-sm font-bold text-gray-300">Summary: </span>{episode?.summary?.replace(/(<([^>]+)>)/gi, "") ?? 'N/A'}</p>
                                                             </div>
                                                         </span>
                                                     </label>
