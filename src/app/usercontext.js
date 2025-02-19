@@ -7,10 +7,13 @@ export const UserContext = createContext({});
 export default function UserComponent({ children }) {
 
     let localuser = {}
-    const userString = localStorage.getItem('user')
-    if (userString) {
-        localuser = JSON.parse(userString)
+    try {
+        const userString = localStorage.getItem('user')
+        if (userString) {
+            localuser = JSON.parse(userString)
+        }
     }
+    catch (e) { }
     const [user, setUser] = useState(localuser)
     const value = { user, setUser }
 
